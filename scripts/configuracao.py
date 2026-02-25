@@ -15,6 +15,9 @@ GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
 # Query de busca: repositórios públicos ordenados por estrelas (descendente)
 REPOSITORY_SEARCH_QUERY = "stars:>1 sort:stars-desc is:public"
 
+# Número de repositórios a buscar por requisição (para evitar erros 502)
+PAGE_SIZE = int(os.getenv("PAGE_SIZE", "10"))
+
 class Config:
     """
     Classe de configuração que carrega parâmetros do arquivo .env.

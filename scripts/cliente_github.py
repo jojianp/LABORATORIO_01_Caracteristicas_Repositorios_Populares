@@ -10,10 +10,7 @@ import time
 
 import requests
 
-from configuracao import GITHUB_GRAPHQL_URL, REPOSITORY_SEARCH_QUERY
-
-# Número de repositórios a buscar por requisição (para evitar erros 502)
-PAGE_SIZE = 20
+from configuracao import GITHUB_GRAPHQL_URL, PAGE_SIZE, REPOSITORY_SEARCH_QUERY
 
 GRAPHQL_QUERY = """
 query ($searchQuery: String!, $first: Int!, $after: String) {
