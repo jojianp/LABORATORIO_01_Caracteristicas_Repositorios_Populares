@@ -9,6 +9,7 @@ Este módulo gerencia a comunicação com a API do GitHub, incluindo:
 import time
 
 import requests
+from tqdm import tqdm
 
 from configuracao import GITHUB_GRAPHQL_URL, PAGE_SIZE, REPOSITORY_SEARCH_QUERY
 
@@ -210,31 +211,30 @@ def fetch_top_repositories(token_manager, limit=100):
     cursor = None
     remaining = limit
 
-    print(f"Buscando {limit} repositórios...")
-    
-    while remaining > 0:
-        batch_size = min(PAGE_SIZE, remaining)
-        variables = {
-            "searchQuery": REPOSITORY_SEARCH_QUERY,
-            "first": batch_size,
-            "after": cursor
-        }
+    with tqdm(total=limit, desc="Buscando repositórios", unit="repo", bar_format="{desc}: {percentage:.0f}%|{bar}| [{elapsed}<{remaining}, {rate_fmt}]") as pbar:
+        while remaining > 0:
+            batch_size = min(PAGE_SIZE, remaining)
+            variables = {
+                "searchQuery": REPOSITORY_SEARCH_QUERY,
+                "first": batch_size,
+                "after": cursor
+            }
 
-        data = graphql_request(token_manager, GRAPHQL_QUERY, variables)
-        search_result = data["search"]
-        repos = [node for node in search_result["nodes"] if node is not None]
-        
-        all_repos.extend(repos)
-        remaining -= len(repos)
-        
-        print(f"Coletados {len(all_repos)}/{limit} repositórios")
-        
-        # Verifica se tem mais páginas
-        page_info = search_result.get("pageInfo", {})
-        if not page_info.get("hasNextPage") or remaining <= 0:
-            break
+            data = graphql_request(token_manager, GRAPHQL_QUERY, variables)
+            search_result = data["search"]
+            repos = [node for node in search_result["nodes"] if node is not None]
             
-        cursor = page_info.get("endCursor")
-        time.sleep(1)
+            all_repos.extend(repos)
+            remaining -= len(repos)
+            
+            pbar.update(len(repos))
+            
+                # Verifica se tem mais páginas
+            page_info = search_result.get("pageInfo", {})
+            if not page_info.get("hasNextPage") or remaining <= 0:
+                break
+                
+            cursor = page_info.get("endCursor")
+            time.sleep(1)
     
     return all_repos
