@@ -210,9 +210,12 @@ def fetch_top_repositories(token_manager, limit=100):
     all_repos = []
     cursor = None
     remaining = limit
+    max_iterations = (limit // PAGE_SIZE) + 2  # Proteção contra loop infinito
 
     with tqdm(total=limit, desc="Buscando repositórios", unit="repo", bar_format="{desc}: {percentage:.0f}%|{bar}| [{elapsed}<{remaining}, {rate_fmt}]") as pbar:
-        while remaining > 0:
+        iteration = 0
+        while remaining > 0 and iteration < max_iterations:
+            iteration += 1
             batch_size = min(PAGE_SIZE, remaining)
             variables = {
                 "searchQuery": REPOSITORY_SEARCH_QUERY,
@@ -224,17 +227,30 @@ def fetch_top_repositories(token_manager, limit=100):
             search_result = data["search"]
             repos = [node for node in search_result["nodes"] if node is not None]
             
+            # Se não recebeu repositórios, interrompe a busca
+            if not repos:
+                break
+            
             all_repos.extend(repos)
-            remaining -= len(repos)
+            fetched = len(repos)
+            remaining -= fetched
+            pbar.update(fetched)
             
-            pbar.update(len(repos))
-            
-                # Verifica se tem mais páginas
+            # Verifica se há mais páginas disponíveis
             page_info = search_result.get("pageInfo", {})
-            if not page_info.get("hasNextPage") or remaining <= 0:
+            has_next = page_info.get("hasNextPage", False)
+            
+            # Para se não há mais páginas ou já coletou o suficiente
+            if not has_next or remaining <= 0:
+                break
+                
+            # Se recebeu menos repositórios que o solicitado, pode não haver mais dados
+            if fetched < batch_size:
                 break
                 
             cursor = page_info.get("endCursor")
+            
+            # Pequeno delay para evitar sobrecarga na API
             time.sleep(1)
     
     return all_repos
