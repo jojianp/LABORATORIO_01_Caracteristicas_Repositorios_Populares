@@ -7,11 +7,13 @@ Este módulo gerencia a comunicação com a API do GitHub, incluindo:
 """
 
 import time
+import logging
 
 import requests
 from tqdm import tqdm
 
 from configuracao import GITHUB_GRAPHQL_URL, PAGE_SIZE, REPOSITORY_SEARCH_QUERY
+from errors import TokenError, GraphQLError, RateLimitError, RequestError
 
 GRAPHQL_QUERY = """
 query ($searchQuery: String!, $first: Int!, $after: String) {
@@ -70,7 +72,7 @@ class TokenManager:
         """
         cleaned_tokens = [token.strip() for token in tokens if token and token.strip()]
         if not cleaned_tokens:
-            raise RuntimeError("Nenhum token informado. Defina GITHUB_TOKEN ou GITHUB_TOKENS.")
+            raise TokenError("Nenhum token informado. Defina GITHUB_TOKEN ou GITHUB_TOKENS.")
         self.tokens = cleaned_tokens
         self.index = 0
 
@@ -109,7 +111,7 @@ class TokenManager:
         """
         wait_seconds = max(1, int(reset_timestamp) - int(time.time()) + 2)
         wait_minutes = round(wait_seconds / 60, 2)
-        print(f"Todos os tokens no limite. Aguardando {wait_minutes} min para reset...")
+        logging.info("Todos os tokens no limite. Aguardando %s min para reset...", wait_minutes)
         time.sleep(wait_seconds)
 
 
@@ -155,7 +157,7 @@ def graphql_request(token_manager, query, variables):
                     if token_manager.index == 0 and reset_at > 0:
                         token_manager.sleep_until_reset(reset_at)
                     continue
-                raise RuntimeError(f"Erro GraphQL: {payload['errors']}")
+                raise GraphQLError(f"Erro GraphQL: {payload['errors']}")
 
             if remaining <= 1:
                 token_manager.next_token()
@@ -171,13 +173,19 @@ def graphql_request(token_manager, query, variables):
         # Retry em erros temporários do servidor (502, 503, 504, 500)
         if response.status_code in (500, 502, 503, 504):
             wait_time = 5 + (attempts * 2)
-            print(f"Erro temporário {response.status_code}. Tentativa {attempts}/{max_attempts}. Aguardando {wait_time}s...")
+            logging.warning(
+                "Erro temporário %s. Tentativa %s/%s. Aguardando %ss...",
+                response.status_code,
+                attempts,
+                max_attempts,
+                wait_time,
+            )
             time.sleep(wait_time)
             continue
 
-        raise RuntimeError(f"Falha na chamada GraphQL: HTTP {response.status_code} - {response.text}")
+        raise RequestError(f"Falha na chamada GraphQL: HTTP {response.status_code} - {response.text}")
 
-    raise RuntimeError("Não foi possível concluir a chamada GraphQL após múltiplas tentativas.")
+    raise RequestError("Não foi possível concluir a chamada GraphQL após múltiplas tentativas.")
 
 
 def fetch_top_repositories(token_manager, limit=100):
