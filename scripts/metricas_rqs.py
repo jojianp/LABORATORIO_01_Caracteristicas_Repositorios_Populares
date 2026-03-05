@@ -51,11 +51,27 @@ def save_to_csv(repositories, filename="repos.csv"):
         repositories: Lista de repositorios normalizados
         filename: Nome do arquivo CSV a ser criado (padrao: repos.csv)
     """
+    # Preparar e formatar dados antes de escrever no CSV
+    rows = []
+    for repo in repositories:
+        row = repo.copy()
+        # Formatar issues_ratio como porcentagem com 2 casas decimais
+        try:
+            ratio = float(row.get("issues_ratio", 0))
+        except (TypeError, ValueError):
+            ratio = 0.0
+        row["issues_ratio"] = f"{ratio * 100:.2f}%"
+        rows.append(row)
+
     # Escrever dados no arquivo CSV
     with open(filename, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=["name", "stars", "age_days", "prs", "releases", "update_days", "language", "issues_ratio"])
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["name", "stars", "age_days", "prs", "releases", "update_days", "language", "issues_ratio"],
+        )
         writer.writeheader()
-        writer.writerows(repositories)
+        writer.writerows(rows)
+
     print(f"CSV salvo: {filename}")
 
 def summarize_metrics(repositories):
