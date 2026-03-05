@@ -6,7 +6,7 @@ Este script coordena o processo completo das outras classes e módulos
 from datetime import datetime, timezone
 from cliente_github import TokenManager, fetch_top_repositories
 from configuracao import Config
-from metricas_rqs import normalize_repository, summarize_metrics, print_results
+from metricas_rqs import normalize_repository, summarize_metrics, print_results, save_to_csv
 
 def main():
     """Funcao principal que executa o fluxo de coleta e analise de dados.
@@ -36,6 +36,9 @@ def main():
     
     # Normalizar dados brutos em formato padronizado
     repositories = [normalize_repository(repo, now_utc) for repo in raw_repositories]
+    
+    # Salvar CSV
+    save_to_csv(repositories)
     
     # Calcular metricas agregadas e estatisticas
     summary = summarize_metrics(repositories)
