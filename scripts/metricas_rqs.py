@@ -63,16 +63,23 @@ def save_to_csv(repositories, filename="repos.csv"):
         row["issues_ratio"] = f"{ratio * 100:.2f}%"
         rows.append(row)
 
+    # Criar caminho para salvar na pasta resultados
+    import os
+    output_dir = "resultados"
+    os.makedirs(output_dir, exist_ok=True)
+    filepath = os.path.join(output_dir, filename)
+
     # Escrever dados no arquivo CSV
-    with open(filename, 'w', newline='', encoding='utf-8') as f:
+    with open(filepath, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(
             f,
             fieldnames=["name", "stars", "age_days", "prs", "releases", "update_days", "language", "issues_ratio"],
+            delimiter=';'
         )
         writer.writeheader()
         writer.writerows(rows)
 
-    print(f"CSV salvo: {filename}")
+    print(f"CSV salvo: {filepath}")
 
 def summarize_metrics(repositories):
     """Calcula metricas estatisticas agregadas dos repositorios coletados.
@@ -88,16 +95,9 @@ def summarize_metrics(repositories):
 def print_results(summary, repositories):
     """Imprime um resumo dos repositorios processados.
     
-    Exibe o total de repositorios e informacoes basicas dos primeiros
-    5 repositorios da lista.
-    
     Args:
         summary: Dicionario com metricas agregadas dos repositorios
         repositories: Lista de repositorios normalizados para exibicao
     """
     # Exibir total de repositorios
     print(f"\nTotal: {summary['total_repositories']} repositorios")
-    
-    # Exibir primeiros 5 repositorios
-    for repo in repositories[:5]:
-        print(f"{repo['name']}: {repo['stars']} stars, {repo['language']}")
