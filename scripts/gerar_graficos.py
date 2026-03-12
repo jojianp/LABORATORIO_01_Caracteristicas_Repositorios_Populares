@@ -80,6 +80,101 @@ def rq02_pull_requests():
     plt.savefig(output_dir / 'rq02_pull_requests.png', dpi=300, bbox_inches='tight')
     plt.close()
 
+
+# ============================================================================
+# RQ 03: Sistemas populares lançam releases com frequência?
+# ============================================================================
+def rq03_releases():
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+    
+    # Histograma
+    axes[0].hist(df['releases'], bins=50, color='coral', edgecolor='black', alpha=0.7)
+    axes[0].set_xlabel('Total de Releases')
+    axes[0].set_ylabel('Frequência')
+    axes[0].set_title('Distribuição de Releases')
+    axes[0].axvline(df['releases'].median(), color='red', linestyle='--', 
+                    label=f'Mediana: {df["releases"].median():.0f}')
+    axes[0].axvline(df['releases'].mean(), color='orange', linestyle='--', 
+                    label=f'Média: {df["releases"].mean():.0f}')
+    axes[0].legend()
+    
+    # Top 15 repositórios com mais releases
+    top_releases = df.nlargest(15, 'releases')[['name', 'releases']].copy()
+    top_releases['name'] = top_releases['name'].str.split('/').str[-1]
+    axes[1].barh(range(len(top_releases)), top_releases['releases'], color='coral', alpha=0.7)
+    axes[1].set_yticks(range(len(top_releases)))
+    axes[1].set_yticklabels(top_releases['name'], fontsize=9)
+    axes[1].set_xlabel('Total de Releases')
+    axes[1].set_title('Top 15 Repositórios com Mais Releases')
+    axes[1].invert_yaxis()
+    
+    plt.tight_layout()
+    plt.savefig(output_dir / 'rq03_releases.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+# ============================================================================
+# RQ 04: Sistemas populares são atualizados com frequência?
+# ============================================================================
+def rq04_ultima_atualizacao():
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+    
+    # Histograma
+    axes[0].hist(df['update_days'], bins=50, color='mediumpurple', edgecolor='black', alpha=0.7)
+    axes[0].set_xlabel('Dias desde última atualização')
+    axes[0].set_ylabel('Frequência')
+    axes[0].set_title('Distribuição do Tempo desde Última Atualização')
+    axes[0].axvline(df['update_days'].median(), color='red', linestyle='--', 
+                    label=f'Mediana: {df["update_days"].median():.0f} dias')
+    axes[0].axvline(df['update_days'].mean(), color='orange', linestyle='--', 
+                    label=f'Média: {df["update_days"].mean():.0f} dias')
+    axes[0].legend()
+    
+    # Box plot
+    axes[1].boxplot(df['update_days'], vert=True)
+    axes[1].set_ylabel('Dias desde última atualização')
+    axes[1].set_title('Box Plot do Tempo desde Última Atualização')
+    axes[1].set_xticklabels(['Repositórios'])
+    
+    plt.tight_layout()
+    plt.savefig(output_dir / 'rq04_ultima_atualizacao.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+# ============================================================================
+# RQ 05: Sistemas populares são escritos nas linguagens mais populares?
+# ============================================================================
+def rq05_linguagens():
+    # Contar frequência de linguagens
+    language_counts = df['language'].value_counts()
+    
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+    
+    # Top 15 linguagens
+    top_languages = language_counts.head(15)
+    axes[0].barh(range(len(top_languages)), top_languages.values, color='teal', alpha=0.7)
+    axes[0].set_yticks(range(len(top_languages)))
+    axes[0].set_yticklabels(top_languages.index)
+    axes[0].set_xlabel('Quantidade de Repositórios')
+    axes[0].set_title('Top 15 Linguagens de Programação')
+    axes[0].invert_yaxis()
+    
+    # Gráfico de pizza das top 10
+    top10 = language_counts.head(10)
+    outros = language_counts[10:].sum()
+    
+    if outros > 0:
+        top10['Outras'] = outros
+    
+    colors = plt.cm.Set3(range(len(top10)))
+    axes[1].pie(top10.values, labels=top10.index, autopct='%1.1f%%', 
+                colors=colors, startangle=90)
+    axes[1].set_title('Distribuição das Linguagens (Top 10 + Outras)')
+    
+    plt.tight_layout()
+    plt.savefig(output_dir / 'rq05_linguagens.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
 def main():
     # Gerar todos os gráficos
     rq01_idade_repositorios()
