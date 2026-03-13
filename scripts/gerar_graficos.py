@@ -299,8 +299,8 @@ def rq07_linguagens_vs_metricas():
 # DASHBOARD GERAL: Combinação de todas as análises para visão geral 
 # ============================================================================
 def gerar_dashboard_geral():
-    fig = plt.figure(figsize=(18, 10))
-    gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3)
+    fig = plt.figure(figsize=(18, 12))
+    gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.5)
     
     # 1. Idade
     ax1 = fig.add_subplot(gs[0, 0])
@@ -384,6 +384,9 @@ def main():
     # Gerar todos os gráficos
     rq01_idade_repositorios()
     rq02_pull_requests()
+    rq03_releases()
+    rq04_ultima_atualizacao()
+    rq05_linguagens()
     rq06_issues_fechadas()
     rq07_linguagens_vs_metricas()
     gerar_dashboard_geral()
