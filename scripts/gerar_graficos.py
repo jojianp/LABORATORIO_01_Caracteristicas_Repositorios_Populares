@@ -174,12 +174,219 @@ def rq05_linguagens():
     plt.tight_layout()
     plt.savefig(output_dir / 'rq05_linguagens.png', dpi=300, bbox_inches='tight')
     plt.close()
+    
+    
+# ============================================================================
+# RQ 06: Sistemas populares possuem alto percentual de issues fechadas?
+# ============================================================================
+def rq06_issues_fechadas():
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+    
+    # Histograma
+    axes[0].hist(df['issues_ratio'] * 100, bins=30, color='indianred', edgecolor='black', alpha=0.7)
+    axes[0].set_xlabel('Percentual de Issues Fechadas (%)')
+    axes[0].set_ylabel('Frequência')
+    axes[0].set_title('Distribuição do Percentual de Issues Fechadas')
+    axes[0].axvline(df['issues_ratio'].median() * 100, color='red', linestyle='--', 
+                    label=f'Mediana: {df["issues_ratio"].median()*100:.1f}%')
+    axes[0].axvline(df['issues_ratio'].mean() * 100, color='orange', linestyle='--', 
+                    label=f'Média: {df["issues_ratio"].mean()*100:.1f}%')
+    axes[0].legend()
+    
+    # Box plot
+    axes[1].boxplot(df['issues_ratio'] * 100, vert=True)
+    axes[1].set_ylabel('Percentual de Issues Fechadas (%)')
+    axes[1].set_title('Box Plot do Percentual de Issues Fechadas')
+    axes[1].set_xticklabels(['Repositórios'])
+    
+    plt.tight_layout()
+    plt.savefig(output_dir / 'rq06_issues_fechadas.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+# ============================================================================
+# RQ 07: Linguagens populares vs contribuição, releases e atualizações
+# ============================================================================
+def rq07_linguagens_vs_metricas():
+    # Selecionar top 10 linguagens por quantidade
+    top_languages = df['language'].value_counts().head(10).index
+    df_top_lang = df[df['language'].isin(top_languages)].copy()
+    
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    
+    # 1. PRs por linguagem
+    prs_by_lang = df_top_lang.groupby('language')['prs'].agg(['mean', 'median', 'sum'])
+    prs_by_lang = prs_by_lang.sort_values('mean', ascending=False)
+    
+    axes[0, 0].barh(range(len(prs_by_lang)), prs_by_lang['mean'], color='steelblue', alpha=0.7)
+    axes[0, 0].set_yticks(range(len(prs_by_lang)))
+    axes[0, 0].set_yticklabels(prs_by_lang.index)
+    axes[0, 0].set_xlabel('Média de Pull Requests')
+    axes[0, 0].set_title('Média de Pull Requests por Linguagem (Top 10)')
+    axes[0, 0].invert_yaxis()
+    
+    # 2. Releases por linguagem
+    releases_by_lang = df_top_lang.groupby('language')['releases'].agg(['mean', 'median', 'sum'])
+    releases_by_lang = releases_by_lang.sort_values('mean', ascending=False)
+    
+    axes[0, 1].barh(range(len(releases_by_lang)), releases_by_lang['mean'], color='coral', alpha=0.7)
+    axes[0, 1].set_yticks(range(len(releases_by_lang)))
+    axes[0, 1].set_yticklabels(releases_by_lang.index)
+    axes[0, 1].set_xlabel('Média de Releases')
+    axes[0, 1].set_title('Média de Releases por Linguagem (Top 10)')
+    axes[0, 1].invert_yaxis()
+    
+    # 3. Dias desde última atualização por linguagem (menor = mais frequente)
+    update_by_lang = df_top_lang.groupby('language')['update_days'].agg(['mean', 'median'])
+    update_by_lang = update_by_lang.sort_values('mean', ascending=True)
+    
+    axes[1, 0].barh(range(len(update_by_lang)), update_by_lang['mean'], color='mediumpurple', alpha=0.7)
+    axes[1, 0].set_yticks(range(len(update_by_lang)))
+    axes[1, 0].set_yticklabels(update_by_lang.index)
+    axes[1, 0].set_xlabel('Média de Dias desde Última Atualização')
+    axes[1, 0].set_title('Frequência de Atualização por Linguagem (Top 10)')
+    axes[1, 0].invert_yaxis()
+    
+    # 4. Contagem de repos por linguagem (popularidade)
+    lang_counts = df['language'].value_counts().head(10)
+    axes[1, 1].barh(range(len(lang_counts)), lang_counts.values, color='teal', alpha=0.7)
+    axes[1, 1].set_yticks(range(len(lang_counts)))
+    axes[1, 1].set_yticklabels(lang_counts.index)
+    axes[1, 1].set_xlabel('Quantidade de Repositórios')
+    axes[1, 1].set_title('Popularidade das Linguagens (Top 10)')
+    axes[1, 1].invert_yaxis()
+    
+    plt.tight_layout()
+    plt.savefig(output_dir / 'rq07_linguagens_vs_metricas.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Criar gráfico adicional: correlação entre quantidade de repos e métricas
+    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+    
+    # Preparar dados agregados por linguagem
+    lang_stats = df_top_lang.groupby('language').agg({
+        'prs': 'mean',
+        'releases': 'mean',
+        'update_days': 'mean',
+        'name': 'count'
+    }).rename(columns={'name': 'count'})
+    
+    # Criar scatter plot
+    scatter = ax.scatter(lang_stats['count'], lang_stats['prs'], 
+                        s=lang_stats['releases']*10, alpha=0.6, c=lang_stats['update_days'],
+                        cmap='viridis', edgecolors='black', linewidth=1)
+    
+    # Adicionar labels para cada linguagem
+    for idx, row in lang_stats.iterrows():
+        ax.annotate(idx, (row['count'], row['prs']), fontsize=9, 
+                   ha='center', va='bottom')
+    
+    ax.set_xlabel('Quantidade de Repositórios (Popularidade)')
+    ax.set_ylabel('Média de Pull Requests')
+    ax.set_title('Relação entre Popularidade da Linguagem e Contribuições\n' +
+                 '(tamanho = releases, cor = dias desde atualização)')
+    
+    # Colorbar
+    cbar = plt.colorbar(scatter, ax=ax)
+    cbar.set_label('Dias desde última atualização')
+    
+    plt.tight_layout()
+    plt.savefig(output_dir / 'rq07_correlacao_linguagens.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+# ============================================================================
+# DASHBOARD GERAL: Combinação de todas as análises para visão geral 
+# ============================================================================
+def gerar_dashboard_geral():
+    fig = plt.figure(figsize=(18, 10))
+    gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3)
+    
+    # 1. Idade
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.hist(df['age_days']/365, bins=30, color='steelblue', alpha=0.7, edgecolor='black')
+    ax1.set_xlabel('Idade (anos)')
+    ax1.set_ylabel('Frequência')
+    ax1.set_title('RQ01: Idade dos Repositórios')
+    ax1.axvline(df['age_days'].median()/365, color='red', linestyle='--', linewidth=2)
+    
+    # 2. PRs
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax2.hist(np.log10(df['prs'] + 1), bins=30, color='seagreen', alpha=0.7, edgecolor='black')
+    ax2.set_xlabel('Log10(PRs + 1)')
+    ax2.set_ylabel('Frequência')
+    ax2.set_title('RQ02: Pull Requests')
+    
+    # 3. Releases
+    ax3 = fig.add_subplot(gs[0, 2])
+    ax3.hist(np.log10(df['releases'] + 1), bins=30, color='coral', alpha=0.7, edgecolor='black')
+    ax3.set_xlabel('Log10(Releases + 1)')
+    ax3.set_ylabel('Frequência')
+    ax3.set_title('RQ03: Releases')
+    
+    # 4. Atualização
+    ax4 = fig.add_subplot(gs[1, 0])
+    ax4.hist(df['update_days'], bins=30, color='mediumpurple', alpha=0.7, edgecolor='black')
+    ax4.set_xlabel('Dias desde atualização')
+    ax4.set_ylabel('Frequência')
+    ax4.set_title('RQ04: Última Atualização')
+    
+    # 5. Linguagens (top 10)
+    ax5 = fig.add_subplot(gs[1, 1])
+    lang_counts = df['language'].value_counts().head(10)
+    ax5.barh(range(len(lang_counts)), lang_counts.values, color='teal', alpha=0.7)
+    ax5.set_yticks(range(len(lang_counts)))
+    ax5.set_yticklabels(lang_counts.index, fontsize=8)
+    ax5.set_xlabel('Repositórios')
+    ax5.set_title('RQ05: Top 10 Linguagens')
+    ax5.invert_yaxis()
+    
+    # 6. Issues fechadas
+    ax6 = fig.add_subplot(gs[1, 2])
+    ax6.hist(df['issues_ratio'] * 100, bins=30, color='indianred', alpha=0.7, edgecolor='black')
+    ax6.set_xlabel('% Issues Fechadas')
+    ax6.set_ylabel('Frequência')
+    ax6.set_title('RQ06: Issues Fechadas')
+    
+    # 7. Estatísticas gerais (texto)
+    ax7 = fig.add_subplot(gs[2, :])
+    ax7.axis('off')
+    
+    stats_text = f"""
+    ESTATÍSTICAS GERAIS DOS REPOSITÓRIOS POPULARES
+    
+    Total de repositórios analisados: {len(df)}
+    
+    Idade média: {df['age_days'].mean()/365:.1f} anos  |  Mediana: {df['age_days'].median()/365:.1f} anos
+    
+    PRs média: {df['prs'].mean():.1f}  |  Mediana: {df['prs'].median():.1f}  |  Total: {df['prs'].sum()}
+    
+    Releases média: {df['releases'].mean():.1f}  |  Mediana: {df['releases'].median():.1f}  |  Sem releases: {(df['releases']==0).sum()} ({(df['releases']==0).sum()/len(df)*100:.1f}%)
+    
+    Atualização média: {df['update_days'].mean():.1f} dias  |  Última semana: {(df['update_days']<=7).sum()} ({(df['update_days']<=7).sum()/len(df)*100:.1f}%)
+    
+    Linguagens: {len(df['language'].unique())} diferentes  |  Top 3: {', '.join([f"{lang} ({count})" for lang, count in df['language'].value_counts().head(3).items()])}
+    
+    Issues fechadas média: {df['issues_ratio'].mean()*100:.1f}%  |  ≥80% fechadas: {(df['issues_ratio']>=0.8).sum()} ({(df['issues_ratio']>=0.8).sum()/len(df)*100:.1f}%)
+    """
+    
+    ax7.text(0.1, 0.5, stats_text, fontsize=11, verticalalignment='center',
+             fontfamily='monospace', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    plt.suptitle('Dashboard: Análise de Repositórios Populares do GitHub', 
+                 fontsize=16, fontweight='bold', y=0.98)
+    
+    plt.savefig(output_dir / 'dashboard_geral.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
 
 def main():
     # Gerar todos os gráficos
     rq01_idade_repositorios()
     rq02_pull_requests()
-
+    rq06_issues_fechadas()
+    rq07_linguagens_vs_metricas()
+    gerar_dashboard_geral()
 
 if __name__ == '__main__':
     main()
